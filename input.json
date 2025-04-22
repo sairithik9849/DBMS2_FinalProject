@@ -1,0 +1,8 @@
+{
+    "S": ["cust", "prod", "avg_quant",  "max_quant"],
+    "n": 0,
+    "V": ["cust", "prod"],
+    "F": ["avg_quant",  "max_quant"],
+    "sigma": [],
+    "G": ""
+}
