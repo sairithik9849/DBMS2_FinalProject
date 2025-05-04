@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 
 class MFStructure:
     def __init__(self, cust, prod):
-        self.cust = cust
         self.prod = prod
+        self.cust = cust
         self.count_quant = 0
         self.sum_quant = 0
         self.count_1_quant = 0
@@ -34,11 +34,11 @@ def query():
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
     cur.execute("SELECT * FROM sales")
-    
+    sales_rows = cur.fetchall()
     _global = []
     
     h_table = []
-    for row in cur:
+    for row in sales_rows:
         found = False
         for entry in h_table:
             if entry.cust == row['cust'] and entry.prod == row['prod']:
@@ -70,17 +70,15 @@ def query():
     
     
     # Scan for grouping variable 1
-    cur.execute("SELECT * FROM sales")
-    for row in cur:
+    for row in sales_rows:
         if row['state'] == 'NY':
             for entry in h_table:
                 if entry.cust == row['cust'] and entry.prod == row['prod']:
-                    entry.sum_1_quant += row['quant']; entry.count_1_quant += 1
+                    entry.count_1_quant += 1; entry.sum_1_quant += row['quant']
                     break
 
     # Scan for grouping variable 2
-    cur.execute("SELECT * FROM sales")
-    for row in cur:
+    for row in sales_rows:
         if row['state'] == 'NJ':
             for entry in h_table:
                 if entry.cust == row['cust'] and entry.prod == row['prod']:
@@ -88,17 +86,16 @@ def query():
                     break
 
     # Scan for grouping variable 3
-    cur.execute("SELECT * FROM sales")
-    for row in cur:
+    for row in sales_rows:
         if row['state'] == 'CT':
             for entry in h_table:
                 if entry.cust == row['cust'] and entry.prod == row['prod']:
-                    entry.sum_3_quant += row['quant']; entry.count_3_quant += 1
+                    entry.count_3_quant += 1; entry.sum_3_quant += row['quant']
                     break
 
         
     for entry in h_table:
-        if entry.sum_1_quant > 2 * entry.sum_2_quant or (entry.sum_1_quant / entry.count_1_quant if entry.count_1_quant != 0 else 0) > (entry.sum_3_quant / entry.count_3_quant if entry.count_3_quant != 0 else 0):
+        if entry.sum_1_quant > 2 * entry.sum_2_quant or (entry.sum_1_quant / entry.count_1_quant if entry.count_1_quant != 0 else 0) > (entry.sum_3_quant / entry.count_3_quant if entry.count_3_quant != 0 else 0)/2:
             _global.append({
             'cust': entry.cust, 'prod': entry.prod, 'avg_quant': (entry.sum_quant / entry.count_quant) if entry.count_quant != 0 else 0, 'sum_quant': entry.sum_quant, 'sum_1_quant': entry.sum_1_quant, 'count_1_quant': entry.count_1_quant, 'avg_1_quant': (entry.sum_1_quant / entry.count_1_quant) if entry.count_1_quant != 0 else 0, 'avg_2_quant': (entry.sum_2_quant / entry.count_2_quant) if entry.count_2_quant != 0 else 0, 'avg_3_quant': (entry.sum_3_quant / entry.count_3_quant) if entry.count_3_quant != 0 else 0
     })       

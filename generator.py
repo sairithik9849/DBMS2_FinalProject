@@ -77,7 +77,7 @@ def main():
     grouping_keys  = input_data["V"]
     n = input_data["n"]
     G = input_data["G"]
-    G_condition = transform_having_condition(G) if G else None
+    G_condition = transform_having_condition(G) if G else True
     final_fields = list(dict.fromkeys(grouping_keys + input_data['S']))
     sigma_map = {}
     for cond in input_data["sigma"]:
@@ -106,8 +106,7 @@ def main():
         group_match = " and ".join([f"entry.{key} == row['{key}']" for key in grouping_keys])
         scan_block = f"""
     # Scan for grouping variable {i_str}
-    cur.execute("SELECT * FROM sales")
-    for row in cur:
+    for row in sales_rows:
         if {condition}:
             for entry in h_table:
                 if {group_match}:
@@ -119,7 +118,7 @@ def main():
     
     body = f"""
     h_table = []
-    for row in cur:
+    for row in sales_rows:
         found = False
         for entry in h_table:
             if {" and ".join([f"entry.{key} == row['{key}']" for key in grouping_keys])}:
@@ -186,7 +185,7 @@ def query():
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
     cur.execute("SELECT * FROM sales")
-    
+    sales_rows = cur.fetchall()
     _global = []
     {body}
     
