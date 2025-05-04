@@ -1,6 +1,6 @@
-# CS562: Multi-Feature Query Engine
+# Multi-Feature Query Engine (Team `NoJoinZone`)
 
-This project implements a custom SQL-like query processor for Multi-Feature (MF) queries over a PostgreSQL sales database. It parses a structured JSON input, generates optimized Python code to perform multi-pass scans, and computes complex aggregations with support for conditional logic and HAVING clauses.
+This project implements a custom SQL-like query processor for Multi-Feature (MF) queries over a PostgreSQL `sales` database. It parses a structured JSON input, generates optimized Python code to perform multi-pass scans, and computes complex aggregations with support for HAVING clauses.
 
 ---
 
@@ -27,7 +27,7 @@ This is how I run the project — and you should probably do the same:
 2. **Install all dependencies from requirements.txt:**
     ```bash
     pip install -r requirements.txt
-3. **Set up your MF query in input.json:**
+3. **Set up your MF query in `input.json`:**
     - Open the `input.json` file in the root directory
     - Define your query using the following fields:
         - `"S"`: List of attributes to project (e.g., `["cust", "avg_quant", "sum_1_quant"]`)
@@ -44,7 +44,7 @@ This is how I run the project — and you should probably do the same:
 
 ## ``inpus.json`` constraints
 
-To correctly generate and run MF/EMF queries, your `input.json` must follow these rules:
+To correctly generate and run MF queries, your `input.json` must follow these rules:
 
 - `"S"` (Select Fields):
   - A list of fields to display in the final output
@@ -54,7 +54,7 @@ To correctly generate and run MF/EMF queries, your `input.json` must follow thes
 
 - `"n"` (Number of Grouping Variables):
   - A non-negative integer (e.g., `0`, `1`, `2`, ...)
-  - Indicates how many scans (beyond the 0th) will be performed
+  - Value is `0` if you are only using grouping variable `0`
 
 - `"V"` (Grouping Attributes):
   - A list of attributes (e.g., `["cust", "prod"]`)
@@ -65,7 +65,7 @@ To correctly generate and run MF/EMF queries, your `input.json` must follow thes
   - `avg_` fields will be decomposed into `sum_` and `count_` fields internally
   - Must only contain aggregates based on fields that exist in the `sales` table
 
-- `"sigma"` (Selection Conditions):
+- `"sigma"` (Such That Clause):
   - A list of strings, one for each grouping variable scan
   - Each string should be of the format: `"i.condition"`, e.g., `"1.state = 'NY'"`
   - Conditions can reference any column in the `sales` table
