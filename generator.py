@@ -1,14 +1,59 @@
+"""
+-------------------------------------------------------
+CS562 Final Project - MF Query Generator
+Author: Sairithik Komuravelly (Team: NoJoinZone)
+Description:
+    This script dynamically generates Python code based on a Multi-Feature (MF) query
+    definition provided in `input.json`. The generated program computes aggregates 
+    over multiple scans of the sales table, emulating the behavior of enhanced SQL 
+    queries without using SQL joins.
+
+Components:
+    - Reads input.json to extract grouping variables, aggregates, filters, and having conditions
+    - Generates MFStructure class with relevant attributes
+    - Performs 0th scan to initialize base aggregates
+    - Performs conditional scans based on grouping variables
+    - Outputs results according to 'S' (select attributes)
+-------------------------------------------------------
+"""
+
 import subprocess
 import json
 import sys
 import re
 
 def read_json(file):
+    """
+    Reads and parses a JSON file.
+    Parameters:
+        file (str): Path to the JSON file.
+    Returns:
+        dict: Parsed contents of the JSON file as a Python dictionary.
+    """
     with open(file,'r') as f:
         return json.load(f)
 
 
 def generate_mf_class(input_data):
+    """
+    Dynamically generates the MFStructure class definition based on the input JSON.
+
+    This function constructs a Python class with attributes for grouping variables and
+    required aggregate fields. It also replaces 'avg_*' aggregates with their corresponding
+    'sum_*' and 'count_*' fields, categorizing them based on the grouping variable index.
+    
+    Parameters:
+        input_data (dict): The parsed contents of input.json, including:
+            - "V": List of grouping attributes
+            - "F": List of aggregate functions
+            - "n": Number of grouping variable scans
+
+    Returns:
+        tuple:
+            - str: The full Python class definition for MFStructure
+            - dict: A mapping from grouping variable index (as string) to the list of
+                    aggregates needed for that scan (F_map)
+    """
     grouping_attributes = input_data["V"]
     aggregates = input_data["F"]
     n = input_data["n"]
@@ -49,7 +94,22 @@ class MFStructure:
     return mf_class_code, F_map
 
 def transform_having_condition(G):
-    # Step 1: Replace avg_* with (entry.sum / entry.count ...)
+    """
+    Transforms the 'G' (having condition) string into valid Python syntax.
+
+    This includes:
+    - Rewriting all 'avg_*' expressions to their equivalent (sum / count) forms
+    - Prefixing aggregate field names (sum_, count_, min_, max_) with 'entry.'
+      if not already prefixed
+    - Replacing standalone '=' with '==' for proper Python equality comparison
+
+    Parameters:
+        G (str): A string representing the original having condition from input.json.
+
+    Returns:
+        str: A Python-compatible boolean condition string to be used in filtering logic.
+    """
+    # Replace avg_* with (entry.sum / entry.count ...)
     def avg_replacer(match):
         avg_field = match.group()
         sum_field = avg_field.replace("avg", "sum")
@@ -58,19 +118,34 @@ def transform_having_condition(G):
 
     G = re.sub(r'\bavg_\d*_?\w+\b', avg_replacer, G)
 
-    # Step 2: Only prefix un-prefixed sum_, count_, max_, min_
+    # Only prefix un-prefixed sum_, count_, max_, min_
     def prefix_entry(match):
         field = match.group()
         return f"entry.{field}"
 
     # Only match if NOT already prefixed with 'entry.'
     G = re.sub(r'(?<!entry\.)\b(?:sum|count|min|max)_\d*_?\w+\b', prefix_entry, G)
-
+    # Replace standalone = with == (not touching >=, <=, !=, ==)
+    G = re.sub(r'(?<![<>=!])=(?![=])', '==', G)
     return G
 
 
 def main():
+    """
+    Main driver function that orchestrates the MF query code generation process.
 
+    This function:
+    - Reads the input JSON file ('input.json') containing the MF query specification
+    - Generates the MFStructure class and identifies required aggregates per grouping variable
+    - Dynamically constructs a Python program to:
+        * Perform 0th and nth scans on the 'sales' table
+        * Compute aggregates based on grouping variables
+        * Apply any specified 'having' condition
+        * Output the selected attributes
+    - Writes the generated Python code to '_generated.py'
+
+    This function is intended to be run once to generate the executable query logic.
+    """
     input_data = read_json("input.json")
     
     mf_class_code, F_map = generate_mf_class(input_data)
@@ -88,7 +163,7 @@ def main():
         i_str = str(i)
         raw_cond = sigma_map[i_str]
         # Find all conditions like "1.state = 'NY'"
-        # Convert "1.state = 'NY'" → "row['state'] == 'NY'"
+        # Convert "1.state = 'NY'" them into "row['state'] == 'NY'"
         tokens = re.split(r'\s+(and|or)\s+', raw_cond)  # keeps 'and'/'or' as tokens
         parsed_conditions = []
 
@@ -179,13 +254,29 @@ def main():
 
 
     tmp = f"""
+\"""
+-------------------------------------------------------
+Auto-Generated Program - Multi-Feature Query Processor
+Generated by: generator.py
+Author: Sairithik Komuravelly (Team: NoJoinZone)
+Description:
+    This program executes a dynamically constructed MF (Multi-Feature) query
+    over the 'sales' table. It performs multiple scans to evaluate conditions
+    associated with each grouping variable and computes the required aggregates
+    (e.g., sum, count, avg, max, min).
+
+    The logic is based on enhanced SQL-like processing without using joins,
+    in accordance with the CS562 Project specifications and relevant research.
+
+    Final output is printed in a formatted table containing the fields
+    specified in the 'S' clause of input.json.
+-------------------------------------------------------
+\"""
 import os
 import psycopg2
 import psycopg2.extras
 import tabulate
 from dotenv import load_dotenv
-
-
 
 {mf_class_code}
 # DO NOT EDIT THIS FILE, IT IS GENERATED BY generator.py

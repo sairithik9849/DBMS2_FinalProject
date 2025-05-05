@@ -1,8 +1,8 @@
 {
-    "S": ["cust","count_1_quant", "sum_2_quant", "max_3_quant"],
+    "S": ["prod","sum_1_quant", "sum_2_quant", "sum_3_quant"],
     "n": 3,
-    "V": ["cust"],
-    "F": ["count_1_quant", "sum_2_quant", "max_3_quant"],
-    "sigma": ["1.state = 'NY'", "2.state = 'NJ'", "3.state = 'CT'"],
-    "G": "count_1_quant*2<max_3_quant"
+    "V": ["prod"],
+    "F": ["sum_1_quant", "sum_2_quant", "sum_3_quant"],
+    "sigma": ["1.month = 1", "2.prod = 'Ham'", "3.month = 3"],
+    "G": ""
 }

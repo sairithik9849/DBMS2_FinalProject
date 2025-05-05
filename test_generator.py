@@ -1,3 +1,26 @@
+"""
+-------------------------------------------------------
+test_generator.py - ESQL vs SQL Output Validator
+Author: Sairithik Komuravelly (Team: NoJoinZone)
+Description:
+    This script tests the correctness of the auto-generated MF query program
+    (_generated.py) by comparing its output with that of a direct SQL query 
+    executed via sql.py.
+
+    Workflow:
+    - Runs generator.py to create _generated.py based on input.json
+    - Executes both _generated.py and sql.py
+    - Captures their outputs, normalizes formatting, and compares results
+
+    If the outputs match:
+        ✅ Prints confirmation message
+    If the outputs differ:
+        ❌ Prints both ESQL and SQL results for debugging
+
+    This ensures the generated ESQL logic faithfully reproduces correct SQL behavior.
+-------------------------------------------------------
+"""
+
 from generator import main as generator
 from _generated import query as _generated
 from sql import query as sql
