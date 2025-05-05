@@ -63,7 +63,7 @@ def transform_having_condition(G):
         field = match.group()
         return f"entry.{field}"
 
-    # ⛔️ Only match if NOT already prefixed with 'entry.'
+    # Only match if NOT already prefixed with 'entry.'
     G = re.sub(r'(?<!entry\.)\b(?:sum|count|min|max)_\d*_?\w+\b', prefix_entry, G)
 
     return G
@@ -86,12 +86,28 @@ def main():
     scan_blocks = ""
     for i in range(1, n + 1):
         i_str = str(i)
-        raw = sigma_map[i_str].split(".", 1)[1]  # remove prefix like '3.'
-        left, right = raw.split("=", 1)
-        condition = f"row[{left.strip()!r}] == {right.strip()}"
+        raw_cond = sigma_map[i_str]
+        # Find all conditions like "1.state = 'NY'"
+        # Convert "1.state = 'NY'" → "row['state'] == 'NY'"
+        tokens = re.split(r'\s+(and|or)\s+', raw_cond)  # keeps 'and'/'or' as tokens
+        parsed_conditions = []
+
+        for token in tokens:
+            if token.lower() in ['and', 'or']:
+                parsed_conditions.append(token.lower())
+            else:
+                match = re.match(r"\d+\.(\w+)\s*([=!><]=?)\s*(.+)", token.strip())
+                if match:
+                    attr, op, value = match.groups()
+                    if op=='=': op='=='
+                    parsed_conditions.append(f"row[{repr(attr)}] {op} {value}")
+                else:
+                    raise ValueError(f"Unrecognized sigma condition: {token.strip()}")
+
+        condition = " ".join(parsed_conditions)
+
 
         agg_list = F_map.get(i_str, [])
-
         updates = []
         for agg in agg_list:
             if "sum" in agg:
@@ -207,12 +223,3 @@ if "__main__" == __name__:
 
 if "__main__" == __name__:
     main()
-
-
-# fields = [f"self.{attr} = None" for attr in grouping_attributes]
-# for agg in aggregates:
-#     fields.append(f"self.{agg} = 0")
-#     if "avg" in agg.lower():
-#         count_field = agg.replace("avg","count")
-#         fields.append(f"self.{count_field} = 0")
-# fields_code = "\n        ".join(fields)
