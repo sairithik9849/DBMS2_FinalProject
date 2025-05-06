@@ -105,21 +105,24 @@ class MFStructure:
 """
     return mf_class_code, F_map
 
-def transform_having_condition(G):
+def transform_condition(G):
     """
-    Transforms the 'G' (having condition) string into valid Python syntax.
+    Transforms logical conditions from the input query by rewriting aggregate functions 
+    and attribute references to be Python-evaluable expressions compatible with MFStructure entries.
 
-    This includes:
-    - Rewriting all 'avg_*' expressions to their equivalent (sum / count) forms
-    - Prefixing aggregate field names (sum_, count_, min_, max_) with 'entry.'
-      if not already prefixed
-    - Replacing standalone '=' with '==' for proper Python equality comparison
+    Specifically:
+    - Replaces any 'avg_*' with the equivalent (entry.sum / entry.count) expression.
+    - Prefixes aggregate fields (e.g., sum_1_quant, count_2_quant) with 'entry.' if not already.
+    - Converts standalone '=' into '==' for valid Python comparisons.
+
+    This function is used to convert both the G (having condition) and sigma conditions 
+    into executable Python code for filtering during MF query scans.
 
     Parameters:
-        G (str): A string representing the original having condition from input.json.
+        expr (str): The condition string from the input JSON (either G or a sigma[i]).
 
     Returns:
-        str: A Python-compatible boolean condition string to be used in filtering logic.
+        str: The transformed condition ready for use in the generated MF query code.
     """
     # Replace avg_* with (entry.sum / entry.count ...)
     def avg_replacer(match):
@@ -164,7 +167,7 @@ def main():
     grouping_keys  = input_data["V"]
     n = input_data["n"]
     G = input_data["G"]
-    G_condition = transform_having_condition(G) if G else True
+    G_condition = transform_condition(G) if G else True
     final_fields = list(dict.fromkeys(grouping_keys + input_data['S']))
     sigma_map = {}
     for cond in input_data["sigma"]:
@@ -187,10 +190,16 @@ def main():
                 if match:
                     attr, op, value = match.groups()
                     if op=='=': op='=='
-                    parsed_conditions.append(f"row[{repr(attr)}] {op} {value}")
+                    # Check if value refers to an aggregate field or another scan's result
+                    value = value.strip()
+                    if re.match(r'\b(?:sum|count|min|max|avg)_\d*_?\w+\b', value):
+                        # Transform to entry reference (e.g., entry.avg_1_quant => valid python expr)
+                        value = transform_condition(value)
+                        parsed_conditions.append(f"row[{repr(attr)}] {op} {value}")
+                    else:
+                        parsed_conditions.append(f"row[{repr(attr)}] {op} {value}")
                 else:
                     raise ValueError(f"Unrecognized sigma condition: {token.strip()}")
-
         condition = " ".join(parsed_conditions)
 
 
@@ -210,8 +219,8 @@ def main():
         scan_block = f"""
     # Scan for grouping variable {i_str}
     for row in sales_rows:
-        if {condition}:
-            for entry in h_table:
+        for entry in h_table:
+            if {condition}:
                 if {group_match}:
                     {"; ".join(updates)}
                     break
@@ -257,8 +266,9 @@ def main():
             h_table.append(new_entry)   # Add the new group entry to the h_table
     
     # Logic to compute grouping_variable aggregates
-    {scan_blocks}   
-    
+    {scan_blocks}
+    # Sorting the h_table by grouping key attributes to keep output consistent   
+    h_table.sort(key=lambda x: tuple(getattr(x, attr) for attr in {grouping_keys}))
     # Apply the final selection condition (G_condition) and prepare result for output
     for entry in h_table:
         if {G_condition}:

@@ -1,8 +1,8 @@
 {
-    "S": ["prod","sum_1_quant", "sum_2_quant", "sum_3_quant"],
+    "S": ["cust", "prod", "avg_quant","sum_quant", "sum_1_quant","count_1_quant","avg_1_quant", "avg_2_quant", "avg_3_quant"],
     "n": 3,
-    "V": ["prod"],
-    "F": ["sum_1_quant", "sum_2_quant", "sum_3_quant", "avg_quant"],
-    "sigma": ["1.month = 1", "2.month>2 and 2.state='CT'", "3.month = 3"],
-    "G": ""
+    "V": ["cust", "prod"],
+    "F": ["avg_quant","sum_quant", "sum_1_quant","count_1_quant","avg_1_quant", "avg_2_quant", "sum_2_quant",  "avg_3_quant"],
+    "sigma": ["3.state = 'CT'", "2.state = 'NJ'", "1.state = 'NY'"],
+    "G": "sum_1_quant > 2 * sum_2_quant or avg_1_quant > avg_3_quant"
 }
