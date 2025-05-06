@@ -2,7 +2,7 @@
     "S": ["prod","sum_1_quant", "sum_2_quant", "sum_3_quant"],
     "n": 3,
     "V": ["prod"],
-    "F": ["sum_1_quant", "sum_2_quant", "sum_3_quant"],
-    "sigma": ["1.month = 1", "2.prod = 'Ham'", "3.month = 3"],
+    "F": ["sum_1_quant", "sum_2_quant", "sum_3_quant", "avg_quant"],
+    "sigma": ["1.month = 1", "2.month>2 and 2.state='CT'", "3.month = 3"],
     "G": ""
 }

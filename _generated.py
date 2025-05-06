@@ -27,6 +27,8 @@ from dotenv import load_dotenv
 class MFStructure:
     def __init__(self, prod):
         self.prod = prod
+        self.count_quant = 0
+        self.sum_quant = 0
         self.sum_1_quant = 0
         self.sum_2_quant = 0
         self.sum_3_quant = 0
@@ -47,12 +49,15 @@ def query():
     sales_rows = cur.fetchall()
     _global = []
     
-    h_table = []
+    h_table = [] # Initialize empty list to store MFStructure entries for each unique group
+    # First scan: populate h_table with grouping key combinations and compute 0th g.v aggregates
     for row in sales_rows:
-        found = False
+        found = False   # Flag to check if a matching group already exists in h_table
         for entry in h_table:
+            # Check if current row matches an existing group (i.e., same grouping key values)
             if entry.prod == row['prod']:
                 found = True
+                # Loop through all attributes in the MFStructure object and update aggregates
                 for att,val in vars(entry).items():
                     if att=='sum_quant':
                         entry.sum_quant += row['quant']
@@ -64,9 +69,11 @@ def query():
                             entry.max_quant = row['quant']
                     if att=='count_quant':
                         entry.count_quant += 1
-                break
+                break   # Stop scanning once the correct group is updated
         if not found:
+            # If this is a new group, create a new MFStructure entry
             new_entry = MFStructure(row['prod'])
+            # Initialize the required aggregate fields with current row's quant value
             for att,val in vars(new_entry).items():
                     if att=='sum_quant':
                         new_entry.sum_quant = row['quant']
@@ -76,8 +83,9 @@ def query():
                         new_entry.max_quant = row['quant']
                     if att=='count_quant':
                         new_entry.count_quant = 1
-            h_table.append(new_entry)
+            h_table.append(new_entry)   # Add the new group entry to the h_table
     
+    # Logic to compute grouping_variable aggregates
     
     # Scan for grouping variable 1
     for row in sales_rows:
@@ -89,7 +97,7 @@ def query():
 
     # Scan for grouping variable 2
     for row in sales_rows:
-        if row['prod'] == 'Ham':
+        if row['month'] > 2 and row['state'] == 'CT':
             for entry in h_table:
                 if entry.prod == row['prod']:
                     entry.sum_2_quant += row['quant']
@@ -102,8 +110,9 @@ def query():
                 if entry.prod == row['prod']:
                     entry.sum_3_quant += row['quant']
                     break
-
-        
+   
+    
+    # Apply the final selection condition (G_condition) and prepare result for output
     for entry in h_table:
         if True:
             _global.append({

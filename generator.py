@@ -57,34 +57,46 @@ def generate_mf_class(input_data):
     grouping_attributes = input_data["V"]
     aggregates = input_data["F"]
     n = input_data["n"]
+     # Initialize map to hold aggregates required per grouping variable (1 to n)
     F_map = {str(i): set() for i in range(1, n+1)}
+    # Track all fields needed in the MF structure, including 0th scan
     group_fields = set(grouping_attributes)
     agg_fields = {str(i): set() for i in range(0, n+1)}
+    # Loop through each aggregate in F and categorize
     for agg in aggregates:
         if "avg" in agg.lower():
+            # Decompose 'avg_*' into its required sum_ and count_ parts
             sum_field = agg.replace("avg","sum")
             count_field = agg.replace("avg","count")
             parts = sum_field.split("_", 2)
+            # Default to 0th scan unless a grouping variable index is found
             group_idx = "0"
             if len(parts) >= 3 and parts[1].isdigit():
                 group_idx  = parts[1]
                 F_map[group_idx].add(sum_field)
                 F_map[group_idx].add(count_field)
+             # Store in the full aggregate list for this scan index
             agg_fields[group_idx].add(sum_field)
             agg_fields[group_idx].add(count_field)
         else:
+            # Process other aggregates (sum, count, min, max)
             group_idx = "0"
             parts = agg.split("_", 2)
             if len(parts) >= 3 and parts[1].isdigit():
                 group_idx = parts[1]
                 F_map[group_idx].add(agg)
             agg_fields[group_idx].add(agg)
+    # Convert F_map sets to lists for consistency
     F_map = {k: list(v) for k, v in F_map.items()}
+    # Generate code lines for assigning grouping attributes in __init__
     group_assignments = "\n        ".join([f"self.{attr} = {attr}" for attr in group_fields])
+    # Flatten and order aggregate fields across all scans
     ordered_agg_fields = []
     for i in range(0,n+1):
         ordered_agg_fields.extend(sorted(agg_fields[str(i)]))
+    # Generate code lines for initializing aggregate fields to 0
     agg_assignments = "\n        ".join([f"self.{attr} = 0" for attr in ordered_agg_fields])
+    # Construct the full class definition as a string
     mf_class_code = f"""
 class MFStructure:
     def __init__(self, {', '.join(grouping_attributes)}):
@@ -208,12 +220,15 @@ def main():
 
     
     body = f"""
-    h_table = []
+    h_table = [] # Initialize empty list to store MFStructure entries for each unique group
+    # First scan: populate h_table with grouping key combinations and compute 0th g.v aggregates
     for row in sales_rows:
-        found = False
+        found = False   # Flag to check if a matching group already exists in h_table
         for entry in h_table:
+            # Check if current row matches an existing group (i.e., same grouping key values)
             if {" and ".join([f"entry.{key} == row['{key}']" for key in grouping_keys])}:
                 found = True
+                # Loop through all attributes in the MFStructure object and update aggregates
                 for att,val in vars(entry).items():
                     if att=='sum_quant':
                         entry.sum_quant += row['quant']
@@ -225,9 +240,11 @@ def main():
                             entry.max_quant = row['quant']
                     if att=='count_quant':
                         entry.count_quant += 1
-                break
+                break   # Stop scanning once the correct group is updated
         if not found:
+            # If this is a new group, create a new MFStructure entry
             new_entry = MFStructure({', '.join(["row['" + key + "']" for key in grouping_keys])})
+            # Initialize the required aggregate fields with current row's quant value
             for att,val in vars(new_entry).items():
                     if att=='sum_quant':
                         new_entry.sum_quant = row['quant']
@@ -237,10 +254,12 @@ def main():
                         new_entry.max_quant = row['quant']
                     if att=='count_quant':
                         new_entry.count_quant = 1
-            h_table.append(new_entry)
+            h_table.append(new_entry)   # Add the new group entry to the h_table
     
-    {scan_blocks}
-        
+    # Logic to compute grouping_variable aggregates
+    {scan_blocks}   
+    
+    # Apply the final selection condition (G_condition) and prepare result for output
     for entry in h_table:
         if {G_condition}:
             _global.append({{
