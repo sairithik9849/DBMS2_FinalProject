@@ -1,0 +1,1 @@
+SELECT ny.cust FROM (SELECT cust, SUM(quant) AS ny_total FROM sales WHERE state = 'NY' GROUP BY cust) ny JOIN (SELECT cust, AVG(quant) AS nj_avg FROM sales WHERE state = 'NJ' GROUP BY cust) nj ON ny.cust = nj.cust WHERE ny.ny_total > nj.nj_avg

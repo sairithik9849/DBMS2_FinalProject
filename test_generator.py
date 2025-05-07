@@ -40,7 +40,6 @@ def normalize_output(output: str) -> list[str]:
     return [header] + rows
 
 def test_generator():
-    print("📦 Running generator to create _generated.py...")
 
     print("🔍 Fetching output from generated code and SQL...")
     generated_output = _generated()

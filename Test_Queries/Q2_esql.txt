@@ -1,0 +1,18 @@
+Engish query:
+    Find the total quantity of goods sold, and the total quantity of goods sold where the quantity is greater than the average quantity for the corresponding customer-product pair.
+
+ESQL query:
+    select cust, prod, sum(quant), sum(1.quant)
+    from sales
+    group by cust,prod; 1
+    such that 1.quant>avg_quant
+
+Appropriate input.json for the above query: 
+    {
+        "S": ["cust","prod","sum_quant", "sum_1_quant"],
+        "n": 1,
+        "V": ["cust","prod"],
+        "F": ["sum_quant", "avg_quant","sum_1_quant"],
+        "sigma": ["1.quant>avg_quant"],
+        "G": ""
+    }

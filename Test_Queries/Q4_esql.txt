@@ -1,0 +1,16 @@
+ESQL Query:
+    select cust, prod, avg(quant) avg_quant, sum(quant) sum_quant, sum(1.quant) sum_1_quant, count(1.quant) count_1_quant, avg(1.quant) avg_1_quant, avg(2.quant) avg_2_quant, avg(3.quant) avg_3_quant
+    from sales
+    group by cust,prod
+    such that 3.state = 'CT' and 2.state = 'NJ' and 1.state = 'NY'
+    having sum_1_quant > 2 * sum_2_quant or avg_1_quant > avg_3_quant
+
+Appropriate input.json for the above query:
+    {
+        "S": ["cust", "prod", "avg_quant","sum_quant", "sum_1_quant","count_1_quant","avg_1_quant", "avg_2_quant", "avg_3_quant"],
+        "n": 3,
+        "V": ["cust", "prod"],
+        "F": ["avg_quant","sum_quant", "sum_1_quant","count_1_quant","avg_1_quant", "avg_2_quant", "sum_2_quant",  "avg_3_quant"],
+        "sigma": ["3.state = 'CT'", "2.state = 'NJ'", "1.state = 'NY'"],
+        "G": "sum_1_quant > 2 * sum_2_quant or avg_1_quant > avg_3_quant"
+    }

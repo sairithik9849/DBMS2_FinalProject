@@ -1,0 +1,15 @@
+ESQL query:
+    select cust, count(1.quant) as count_1_quant, sum(2.quant) as sum_2_quant, max(3.quant) as max_3_quant
+    from sales
+    group by cust; 1,2,3 
+    such that 1.state = 'NY' and 2.state='NJ' and 3.state='CT'
+
+Appropriate input.json for the above query: 
+    {
+        "S": ["cust","count_1_quant", "sum_2_quant", "max_3_quant"],
+        "n": 3,
+        "V": ["cust"],
+        "F": ["count_1_quant", "sum_2_quant", "max_3_quant"],
+        "sigma": ["1.state = 'NY'", "2.state = 'NJ'", "3.state = 'CT'"],
+        "G": ""
+    }

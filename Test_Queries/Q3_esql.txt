@@ -1,0 +1,17 @@
+Engish query:
+    Find customers whose total quantity purchased in NY exceeds their average quantity in NJ.
+ESQL query:
+    select cust
+    from sales
+    group by cust; 1,2
+    such that 1.state='NY' ans 2.state='NJ'
+
+Appropriate input.json for the above query: 
+    {
+        "S": ["cust"],
+        "n": 2,
+        "V": ["cust"],
+        "F": [ "sum_1_quant","avg_2_quant"],
+        "sigma": ["1.state='NY'", "2.state='NJ'"],
+        "G": "sum_1_quant>avg_2_quant"
+    }
