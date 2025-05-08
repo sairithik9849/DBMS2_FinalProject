@@ -25,9 +25,14 @@ from dotenv import load_dotenv
 
 
 class MFStructure:
-    def __init__(self, cust):
+    def __init__(self, cust, prod):
+        self.prod = prod
         self.cust = cust
+        self.count_quant = 0
+        self.sum_quant = 0
         self.count_1_quant = 0
+        self.sum_1_quant = 0
+        self.count_2_quant = 0
         self.sum_2_quant = 0
         self.max_3_quant = 0
 
@@ -53,7 +58,7 @@ def query():
         found = False   # Flag to check if a matching group already exists in h_table
         for entry in h_table:
             # Check if current row matches an existing group (i.e., same grouping key values)
-            if entry.cust == row['cust']:
+            if entry.cust == row['cust'] and entry.prod == row['prod']:
                 found = True
                 # Loop through all attributes in the MFStructure object and update aggregates
                 for att,val in vars(entry).items():
@@ -70,7 +75,7 @@ def query():
                 break   # Stop scanning once the correct group is updated
         if not found:
             # If this is a new group, create a new MFStructure entry
-            new_entry = MFStructure(row['cust'])
+            new_entry = MFStructure(row['cust'], row['prod'])
             # Initialize the required aggregate fields with current row's quant value
             for att,val in vars(new_entry).items():
                     if att=='sum_quant':
@@ -89,33 +94,33 @@ def query():
     for row in sales_rows:
         for entry in h_table:
             if row['state'] == 'NY':
-                if entry.cust == row['cust']:
-                    entry.count_1_quant += 1
+                if entry.cust == row['cust'] and entry.prod == row['prod']:
+                    entry.count_1_quant += 1; entry.sum_1_quant += row['quant']
                     break
 
     # Scan for grouping variable 2
     for row in sales_rows:
         for entry in h_table:
-            if row['state'] == 'NJ':
-                if entry.cust == row['cust']:
-                    entry.sum_2_quant += row['quant']
+            if row['state'] == 'NJ' and row['quant'] > (entry.sum_quant / entry.count_quant if entry.count_quant != 0 else 0):
+                if entry.cust == row['cust'] and entry.prod == row['prod']:
+                    entry.count_2_quant += 1; entry.sum_2_quant += row['quant']
                     break
 
     # Scan for grouping variable 3
     for row in sales_rows:
         for entry in h_table:
-            if row['state'] == 'CT':
-                if entry.cust == row['cust']:
+            if row['state'] == 'CT' and row['quant'] < (entry.sum_2_quant / entry.count_2_quant if entry.count_2_quant != 0 else 0):
+                if entry.cust == row['cust'] and entry.prod == row['prod']:
                     entry.max_3_quant = max(entry.max_3_quant, row['quant'])
                     break
 
     # Sorting the h_table by grouping key attributes to keep output consistent   
-    h_table.sort(key=lambda x: tuple(getattr(x, attr) for attr in ['cust']))
+    h_table.sort(key=lambda x: tuple(getattr(x, attr) for attr in ['cust', 'prod']))
     # Apply the final selection condition (G_condition) and prepare result for output
     for entry in h_table:
-        if True:
+        if (entry.sum_2_quant / entry.count_2_quant if entry.count_2_quant != 0 else 0) > 500 and entry.max_3_quant > (entry.sum_quant / entry.count_quant if entry.count_quant != 0 else 0):
             _global.append({
-            'cust': entry.cust, 'count_1_quant': entry.count_1_quant, 'sum_2_quant': entry.sum_2_quant, 'max_3_quant': entry.max_3_quant
+            'cust': entry.cust, 'prod': entry.prod, 'avg_quant': (entry.sum_quant / entry.count_quant) if entry.count_quant != 0 else 0, 'sum_1_quant': entry.sum_1_quant, 'count_1_quant': entry.count_1_quant, 'avg_2_quant': (entry.sum_2_quant / entry.count_2_quant) if entry.count_2_quant != 0 else 0, 'max_3_quant': entry.max_3_quant
     })       
     
     
