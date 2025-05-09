@@ -1,4 +1,4 @@
-# Multi-Feature Query Engine (Team `NoJoinZone`)
+# Multi-Feature Query Engine
 
 This project implements a custom SQL-like query processor for Multi-Feature (MF) queries over a PostgreSQL `sales` database. It parses a structured JSON input, generates optimized Python code to perform multi-pass scans, and computes complex aggregations with support for HAVING clauses.
 
